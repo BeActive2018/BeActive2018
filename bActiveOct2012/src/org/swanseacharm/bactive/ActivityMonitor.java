@@ -48,10 +48,13 @@ import org.swanseacharm.bactive.ui.SingleDay.DataReceiver;
  *
  */
 public class ActivityMonitor extends Service
-{	
+{
+	//new variables for TYPE_STEP_COUNTER
+	private Sensor mStepSensor;
+
     private SensorManager mSensorManager;
     private List<Sensor> mSensorList;
-    private Sensor mAccSensor;
+    //private Sensor mAccSensor;
     public int mSensorDelay = SensorManager.SENSOR_DELAY_NORMAL;
 
     private int mUncommittedSteps = 0;    
@@ -87,10 +90,10 @@ public class ActivityMonitor extends Service
     private float alpha = 0.3f;		//used to calculate exponential moving average
     private Float oldValue;
     
-    // distance of each step in miles - approx 3/4 metre
-    public static final float DISTANCE_STEPS_RATIO = 0.00075f;
-    public static final float CALS_STEPS_RATIO = 0.05f;
-    public static float mGravitySquared = 0;
+    // distance of each step in miles - approx 3/4 metre  			NO LONGER NEEDED WITH STEP_COUNTER
+    //public static final float DISTANCE_STEPS_RATIO = 0.00075f;
+    //public static final float CALS_STEPS_RATIO = 0.05f;
+    //public static float mGravitySquared = 0;
     
     // learning system
     private static final int LEARNING_MATRIX_SIZE = 100;
@@ -146,10 +149,10 @@ public class ActivityMonitor extends Service
     {
 		//set sensor manager
 		mSensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-		mSensorList = mSensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER);
+		mSensorList = mSensorManager.getSensorList(Sensor.TYPE_STEP_COUNTER);//Changed TYPE_ACCELEROMETER to TYPE_STEP_COUNTER
 		if(mSensorList.size() > 0) 
 		{
-		    mAccSensor = mSensorList.get(0);
+		    mStepSensor = mSensorList.get(0);//changed variable name to mStepSensor from mAccSensor
 		}
 	
 		BroadcastReceiver mReceiver = new ScreenReceiver();
@@ -202,7 +205,7 @@ public class ActivityMonitor extends Service
 		//mAlarm = new AlarmReceiver(this);
 		//Wakeful.init(this);
 		
-		mGravitySquared = mSensorManager.GRAVITY_EARTH*mSensorManager.GRAVITY_EARTH; 
+		//mGravitySquared = mSensorManager.GRAVITY_EARTH*mSensorManager.GRAVITY_EARTH; TO BE REMOVED FOR UPDATE
     }
     
     /**
@@ -313,7 +316,7 @@ public class ActivityMonitor extends Service
     	int newListener = (mCurrListener+1) % 2;
     	Log.d("CHARM","Setting newListener to (" + (mCurrListener+1) + " mod 2): " + newListener);
     	
-		if(mSensorManager.registerListener(mSensorListeners[newListener], mAccSensor, mSensorDelay))
+		if(mSensorManager.registerListener(mSensorListeners[newListener], mStepSensor, mSensorDelay))//CHANGED mAccSensor to mStepSensor
 			Log.d("CHARM","...success registering listener " + newListener);
 		else
 			Log.d("CHARM","...registerListener returned false for listener " + newListener);
@@ -333,7 +336,7 @@ public class ActivityMonitor extends Service
     public int onStartCommand(Intent intent, int flags, int startId)
     {
 		// register the sensor listener
-		mSensorManager.registerListener(mSensorListeners[mCurrListener], mAccSensor, mSensorDelay);
+		mSensorManager.registerListener(mSensorListeners[mCurrListener], mStepSensor, mSensorDelay);//CHANGED mAccSensor to mStepSensor
 	
 		// start sticky, want service to be restarted if killed
 		return START_STICKY;
@@ -435,7 +438,7 @@ public class ActivityMonitor extends Service
     protected void sensorChanged(SensorEvent event)
     {
     	// only process accel readings
-    	if(event.sensor == mAccSensor) {
+    	if(event.sensor == mStepSensor) {//CHANGED mAccSensor to mStepSensor
     		// compute non-sqrt magnitude and store (minus gravity)
     		mMagVal = (event.values[0]*event.values[0]+event.values[1]*event.values[1]+event.values[2]*event.values[2]) - mGravitySquared;
     		if(mMagVal < 0)
